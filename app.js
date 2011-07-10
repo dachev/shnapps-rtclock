@@ -19,6 +19,7 @@ var about = [{
 ];
 
 module.exports = {
+    name   : 'rtclock',
     rest   : null,
     about  : about,
     init   : init
@@ -30,7 +31,7 @@ function init(server, pubsub) {
         Ejs     = require('ejs'),
         rest    = Express.createServer();
     
-    rest.use('/rtclock', Express.static(__dirname + '/public'));
+    rest.use(Express.static(__dirname + '/public'));
     
     // configure views
     rest.set('views', __dirname + '/views');
@@ -40,7 +41,7 @@ function init(server, pubsub) {
         rootPath: server.settings.views
     });
     
-    rest.get('/rtclock', function(req, res, next) {
+    rest.get('/', function(req, res, next) {
         res.render('index', {about:about});
     });
     
