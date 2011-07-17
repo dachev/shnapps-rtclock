@@ -50,9 +50,6 @@ function init(server, pubsub) {
         client.publish('/rtclock/time', {time:+new Date});
     }, 1000);
     
-    client.subscribe('/rtclock/users/ping', function(msg) {
-    });
-    
     var counter = new Counter(client);
     pubsub.addExtension(counter);
     

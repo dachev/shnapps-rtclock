@@ -12,7 +12,6 @@ $(function() {
     }
     
     function initRemoteClock() {
-    
         var client = new Faye.Client(location.host + '/faye', {
             timeout:120
         });
