@@ -2,7 +2,7 @@
     "name":"rtclock",
     "version":"0.1.0",
     "dependencies"   : {
-        "express"    : ">= 2.3.12",
-        "ejs"        : ">= 0.4.3"
+        "express"    : "= 2.5.9",
+        "ejs"        : "= 0.4.3"
     }
 }
