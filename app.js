@@ -3,7 +3,7 @@ var about = [
     name  : 'require',
     items : [
       {name:'express', link:'https://github.com/visionmedia/express'},
-      {name:'ejs',     link:'https://github.com/visionmedia/ejs'},
+      {name:'utml',    link:'https://github.com/mikefrey/utml'},
       {name:'faye',    link:'https://github.com/jcoglan/faye'}
     ]
   },
@@ -28,21 +28,23 @@ module.exports = {
 
 function init(server, pubsub) {
   var express = require('express');
-  var ejs     = require('ejs');
-  var rest    = express.createServer();
+  var rest    = express();
+  var utml    = require('utml');
   
   rest.use(express.static(__dirname + '/public'));
   
   // configure views
   rest.set('views', __dirname + '/views');
-  rest.register('.html', ejs);
   rest.set('view engine', 'html');
-  rest.helpers({
-    rootPath: server.settings.views
-  });
+  rest.engine('html', utml.__express);
   
   rest.get('/', function(req, res, next) {
-      res.render('index', {about:about});
+    res.render('index', {
+      locals : {
+        rootPath : server.settings.views,
+        about    : about
+      }
+    });
   });
   
   var client = pubsub.getClient();
@@ -52,7 +54,7 @@ function init(server, pubsub) {
   
   var counter = new Counter(client);
   pubsub.addExtension(counter);
-  
+
   module.exports.rest = rest;
 }
 
