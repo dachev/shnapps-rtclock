@@ -1,4 +1,6 @@
-var about = [
+var undefined = undefined;
+var express   = require('express');
+var about     = [
   {
     name  : 'require',
     items : [
@@ -23,13 +25,26 @@ module.exports = {
   name   : 'rtclock',
   rest   : null,
   about  : about,
-  init   : init
+  init   : initApp
 };
 
-function init(server, pubsub) {
-  var express = require('express');
-  var rest    = express();
-  var utml    = require('utml');
+
+// init functions
+function initApp(server, pubsub) {
+  var config = {};
+  var rest   = express();
+  
+  rest.config = {};
+  rest.set('env', server.settings.env);
+  
+  initExpress(config, rest, function(err) {
+    initPubsub(config, pubsub, function(err) {});
+  });
+  
+  module.exports.rest = rest;
+}
+function initExpress(config, rest, cb) {
+  var utml = require('utml');
   
   rest.use(express.static(__dirname + '/public'));
   
@@ -37,16 +52,15 @@ function init(server, pubsub) {
   rest.set('views', __dirname + '/views');
   rest.set('view engine', 'html');
   rest.engine('html', utml.__express);
+
+  // configure page routes
+  rest.get('/', checkConfigured, pageGetIndex);
   
-  rest.get('/', function(req, res, next) {
-    res.render('index', {
-      locals : {
-        rootPath : server.settings.views,
-        about    : about
-      }
-    });
-  });
-  
+  // configure API routes
+
+  cb(null);
+}
+function initPubsub(config, pubsub, cb) {
   var client = pubsub.getClient();
   setInterval(function() {
     client.publish('/rtclock/time', {time:+new Date});
@@ -55,9 +69,90 @@ function init(server, pubsub) {
   var counter = new Counter(client);
   pubsub.addExtension(counter);
 
-  module.exports.rest = rest;
+  cb(null);
 }
 
+
+// route middleware
+function checkConfigured(req, res, next) {
+  if (!req.body) { req.body = {}; }
+  
+  if (isReady() == false) {
+    return renderError(req, res, 500, {
+      message:'This application is misconfigured.'
+    });
+  }
+  
+  next();
+}
+
+
+// page endpoints
+function pageGetIndex(req, res, next) {
+  res.render('index', {
+    locals : {
+      rootPath : req.app.parent.settings.views,
+      about    : about
+    }
+  });
+}
+
+
+// render helpers
+function renderError(req, res, code, data) {
+  if (req.url.indexOf('/api') == 0) {
+    // JSON response
+    renderJSONError(req, res, code, data);
+  }
+  else {
+    // HTML response
+    renderHTMLError(req, res, code, data);
+  }
+}
+function renderJSONError(req, res, code, data) {
+  res.status(code);
+  res.json(_.extend({
+    message : '',
+    payload : ''
+  }, data, {success:false}));
+}
+function renderHTMLError(req, res, code, data) {
+  var viewPath = path.join(req.app.parent.settings.views, '500');
+  
+  res.status(code);
+  res.render(viewPath, {
+    locals : {
+      status  : 500,
+      request : req,
+      msg     : data.message
+    }
+  });
+}
+function renderSuccess(req, res, data) {
+  if (req.url.indexOf('/api') == 0) {
+    // JSON response
+    renderJSONSuccess(req, res, data);
+  }
+  else {
+    // HTML response
+    renderHTMLSuccess(req, res, data);
+  }
+}
+function renderJSONSuccess(req, res, data) {
+  res.status(200);
+  res.json(_.extend({
+    message : '',
+    payload : ''
+  }, data, {success:true}));
+}
+function renderHTMLSuccess(req, res, data) {
+}
+
+
+// miscellaneous
+function isReady() {
+  return true;
+}
 function Counter(client) {
   var lastUserList = '';
   var lastCount    = 0;
@@ -100,7 +195,6 @@ function Counter(client) {
   
   setInterval(collect, 1000);
 }
-    
 function makeMessage(count, action) {
   var file  = 'button_add_01.png';
   var title = 'User joined';
